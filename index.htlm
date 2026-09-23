@@ -1,0 +1,1809 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ระบบขอแก้ไขผลการเรียนออนไลน์</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Sarabun', sans-serif; background-color: #ffffff; }
+    .role-btn.active { border-bottom: 3px solid #059669; color: #059669; font-weight: 700; background-color: #ecfdf5; }
+    .subtab-btn.active { background-color: #059669; color: #ffffff; }
+    .admin-tab-btn.active { background-color: #047857; color: #ffffff; font-weight: 600; }
+    .drop-zone--over { border-color: #059669 !important; background-color: #ecfdf5 !important; }
+  </style>
+</head>
+<body class="min-h-screen pb-12 text-slate-800 bg-white">
+
+  <!-- Modal แสดงรูปหลักฐาน (Proof Image Viewer Modal) -->
+  <div id="imageModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4" onclick="closeImageModal()">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-4 md:p-6 border border-slate-100 flex flex-col items-center relative" onclick="event.stopPropagation()">
+      <div class="flex justify-between items-center w-full pb-3 border-b border-slate-100 mb-4">
+        <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
+          <i class="fas fa-file-image text-emerald-600"></i> หลักฐาน / ใบคะแนนที่แนบมา
+        </h3>
+        <button onclick="closeImageModal()" class="text-slate-400 hover:text-slate-600 text-lg w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 transition">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="w-full flex justify-center items-center bg-slate-100 rounded-xl p-2 max-h-[70vh] overflow-auto border border-slate-200">
+        <img id="modalImageViewer" src="" alt="รูปหลักฐาน" class="max-h-[65vh] max-w-full object-contain rounded-lg shadow-sm">
+      </div>
+      <div class="flex justify-between items-center w-full pt-4 mt-2 border-t border-slate-100">
+        <a id="modalImageDownloadBtn" href="#" download="รูปหลักฐาน.jpg" target="_blank" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-medium px-4 py-2 rounded-xl text-xs transition flex items-center gap-1.5 border border-emerald-200">
+          <i class="fas fa-download"></i> ดาวน์โหลดรูปภาพ
+        </a>
+        <button onclick="closeImageModal()" class="bg-slate-800 hover:bg-slate-900 text-white font-medium px-5 py-2 rounded-xl text-xs transition cursor-pointer">
+          ปิดหน้าต่าง
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal แจ้งเตือนข้อความ (Custom Alert Modal) -->
+  <div id="noticeModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center transform transition-all border border-slate-100">
+      <div id="noticeIconContainer" class="w-16 h-16 bg-amber-100 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl shadow-inner">
+        <i id="noticeIcon" class="fas fa-exclamation-triangle"></i>
+      </div>
+      <h3 id="noticeTitle" class="text-lg font-bold text-slate-800 mb-2">แจ้งเตือน</h3>
+      <p id="noticeMsg" class="text-xs text-slate-600 mb-6 leading-relaxed">
+        รายละเอียดข้อความแจ้งเตือนระบบ
+      </p>
+      <button onclick="closeNoticeModal()" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-medium py-2.5 rounded-xl text-xs transition shadow-md cursor-pointer">
+        <i class="fas fa-check mr-1.5"></i> ตกลง / ปิดหน้าต่าง
+      </button>
+    </div>
+  </div>
+
+  <!-- Modal ยืนยันการทำงาน (Custom Confirm Modal) -->
+  <div id="customConfirmModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center border border-slate-100">
+      <div id="confirmIconContainer" class="w-16 h-16 bg-rose-100 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl shadow-inner">
+        <i id="confirmIcon" class="fas fa-right-from-bracket"></i>
+      </div>
+      <h3 id="confirmTitle" class="text-lg font-bold text-slate-800 mb-2">ยืนยันการทำรายการ</h3>
+      <p id="confirmMsg" class="text-xs text-slate-600 mb-6 leading-relaxed">คุณต้องการทำรายการนี้ใช่หรือไม่?</p>
+      <div class="flex gap-2">
+        <button onclick="closeConfirmModal(false)" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-2.5 rounded-xl text-xs transition cursor-pointer">ยกเลิก</button>
+        <button id="confirmOkBtn" onclick="closeConfirmModal(true)" class="flex-1 bg-rose-600 hover:bg-rose-700 text-white font-medium py-2.5 rounded-xl text-xs transition shadow-md shadow-rose-200 cursor-pointer">ยืนยัน</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal แสดงตัวอย่างโครงสร้างไฟล์ข้อมูล (Sample Data Preview Modal) -->
+  <div id="samplePreviewModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-6 border border-slate-100 max-h-[85vh] flex flex-col">
+      <div class="flex justify-between items-center pb-3 border-b border-slate-100 mb-4">
+        <h3 id="samplePreviewTitle" class="text-base font-bold text-slate-800 flex items-center gap-2">
+          <i class="fas fa-table text-emerald-600"></i> ตัวอย่างรูปแบบตารางข้อมูล
+        </h3>
+        <button onclick="closeSamplePreviewModal()" class="text-slate-400 hover:text-slate-600 text-lg">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      
+      <p class="text-xs text-slate-600 mb-3">
+        คุณสามารถจัดเตรียมข้อมูลในโปรแกรม Microsoft Excel แล้วบันทึกเป็นไฟล์ <span class="font-bold text-slate-800">CSV (Comma Delimited)</span> หรือ <span class="font-bold text-slate-800">PDF</span> เพื่อนำเข้าสู่ระบบได้ดังนี้:
+      </p>
+
+      <div class="overflow-x-auto flex-1 border border-emerald-100 rounded-xl mb-4 bg-emerald-50/30">
+        <table class="w-full text-left text-xs border-collapse" id="samplePreviewTable">
+          <thead class="bg-emerald-100 text-emerald-900 font-bold" id="samplePreviewHead">
+            <!-- หัวคอลัมน์แสดงด้วย JS -->
+          </thead>
+          <tbody class="divide-y divide-emerald-100 text-slate-700 bg-white" id="samplePreviewBody">
+            <!-- แถวข้อมูลแสดงด้วย JS -->
+          </tbody>
+        </table>
+      </div>
+
+      <div class="flex justify-between items-center pt-2">
+        <button id="downloadSampleBtn" onclick="closeSamplePreviewModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-4 py-2 rounded-xl text-xs transition flex items-center gap-1.5 shadow-md shadow-emerald-200 cursor-pointer">
+          <i class="fas fa-download"></i> ดาวน์โหลดไฟล์ตัวอย่าง .CSV
+        </button>
+        <button onclick="closeSamplePreviewModal()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium px-4 py-2 rounded-xl text-xs transition cursor-pointer">
+          ปิดหน้าต่าง
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal แสดงคู่มือและคัดลอกโค้ด Google Apps Script (GAS Code Modal) -->
+  <div id="gasModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-3xl w-full p-6 border border-slate-100 flex flex-col max-h-[88vh]">
+      <div class="flex justify-between items-center pb-3 border-b border-slate-100 mb-3">
+        <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
+          <i class="fas fa-code text-emerald-600"></i> โค้ดสำหรับติดตั้งใน Google Apps Script (Code.gs)
+        </h3>
+        <button onclick="closeGasModal()" class="text-slate-400 hover:text-slate-600 text-lg w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 transition">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <div class="text-xs text-slate-600 mb-3 space-y-1">
+        <p class="font-bold text-emerald-800"><i class="fas fa-list-check mr-1"></i> ขั้นตอนการติดตั้งง่ายๆ ใน 3 นาที:</p>
+        <ol class="list-decimal pl-5 space-y-0.5 text-[11px] text-slate-600">
+          <li>เปิด Google Sheets ของโรงเรียน &gt; กดเมนู <span class="font-semibold text-slate-800">ส่วนขยาย (Extensions)</span> &gt; <span class="font-semibold text-slate-800">Apps Script</span></li>
+          <li>ลบโค้ดเดิมออกทั้งหมด แล้วนำโค้ดด้านล่างนี้ไปวางในไฟล์ <span class="font-semibold text-slate-800">Code.gs</span></li>
+          <li>กดปุ่ม <span class="font-semibold text-emerald-700">ทำให้ใช้งานได้ (Deploy)</span> &gt; <span class="font-semibold text-emerald-700">การทำให้ใช้งานได้รายการใหม่ (New deployment)</span></li>
+          <li>ตั้งค่า <span class="font-semibold text-rose-600">Who has access (ผู้มีสิทธิ์เข้าถึง) เป็น "Anyone" (ทุกคน)</span> แล้วกด Deploy</li>
+          <li>คัดลอก <span class="font-semibold text-emerald-700">Web App URL</span> มาวางในช่องตั้งค่าระบบ</li>
+        </ol>
+      </div>
+
+      <div class="relative flex-1 min-h-[220px] bg-slate-900 rounded-xl overflow-hidden border border-slate-800 mb-3">
+        <button onclick="copyGasCodeToClipboard()" class="absolute top-3 right-3 bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-md transition flex items-center gap-1.5 z-10 cursor-pointer">
+          <i class="fas fa-copy"></i> คัดลอกโค้ดทั้งหมด
+        </button>
+        <pre class="text-emerald-400 font-mono text-[11px] p-4 h-full overflow-auto leading-relaxed" id="gasCodeContainer">
+// ====================================================
+// โค้ด Google Apps Script สำหรับระบบขอแก้ไขผลการเรียนออนไลน์
+// ====================================================
+
+function doPost(e) {
+  try {
+    var data = JSON.parse(e.postData.contents);
+    var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    
+    // บันทึกข้อมูลลงตาราง Google Sheets
+    sheet.appendRow([
+      new Date(),
+      data.teacherName || '',
+      data.department || '',
+      data.studentId || '',
+      data.studentName || '',
+      data.gradeLevel || '',
+      data.subjectCode || '',
+      data.subjectName || '',
+      data.oldGrade || '',
+      data.newGrade || '',
+      data.reason || '',
+      data.fileUrl || 'ไม่มีหลักฐาน',
+      'รอตรวจสอบ'
+    ]);
+
+    // ส่งการแจ้งเตือนเข้า LINE Notify (ถ้ามีการตั้งค่า Token)
+    if (data.lineToken) {
+      sendLineNotify(data, data.lineToken);
+    }
+
+    return ContentService.createTextOutput(JSON.stringify({ status: 'success', message: 'บันทึกข้อมูลสำเร็จ' }))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (error) {
+    return ContentService.createTextOutput(JSON.stringify({ status: 'error', message: error.toString() }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function doGet(e) {
+  return ContentService.createTextOutput(JSON.stringify({ status: 'online', service: 'Grade Change Request API' }))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function sendLineNotify(data, token) {
+  var message = "\n🚨 มีคำร้องขอแก้ไขเกรดใหม่!\n" +
+                "👤 ครูผู้สอน: " + data.teacherName + " (" + data.department + ")\n" +
+                "🎓 นักเรียน: " + data.studentName + " (รหัส " + data.studentId + ")\n" +
+                "📚 วิชา: " + data.subjectCode + " " + data.subjectName + "\n" +
+                "📝 เกรดเดิม " + data.oldGrade + " ➔ เกรดใหม่ " + data.newGrade;
+  
+  var options = {
+    "method": "post",
+    "headers": { "Authorization": "Bearer " + token },
+    "payload": { "message": message }
+  };
+  
+  UrlFetchApp.fetch("https://notify-api.line.me/api/notify", options);
+}</pre>
+      </div>
+
+      <div class="flex justify-end pt-2">
+        <button onclick="closeGasModal()" class="bg-slate-800 hover:bg-slate-900 text-white font-medium px-5 py-2 rounded-xl text-xs transition cursor-pointer">
+          ปิดหน้าต่าง
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toastNotification" class="fixed bottom-5 right-5 z-50 hidden transition-all transform duration-300">
+    <div id="toastBox" class="flex items-center gap-2.5 bg-slate-900/90 text-white px-4 py-3 rounded-xl shadow-2xl text-xs border border-slate-700/80 backdrop-blur-md">
+      <i id="toastIcon" class="fas fa-circle-check text-emerald-400 text-base"></i>
+      <span id="toastMsg" class="font-medium">ทำรายการสำเร็จ</span>
+    </div>
+  </div>
+
+  <!-- Header -->
+  <header class="bg-gradient-to-r from-emerald-700 via-emerald-800 to-teal-900 text-white shadow-xl">
+    <div class="max-w-6xl mx-auto px-4 py-6 text-center flex flex-col items-center justify-center">
+      
+      <!-- ตราโลโก้โรงเรียน -->
+      <div id="logoContainer" class="mb-3">
+        <img id="headerSchoolLogo" src="https://cdn-icons-png.flaticon.com/512/2997/2997295.png" alt="ตราโลโก้โรงเรียน" class="w-16 h-16 md:w-20 md:h-20 object-contain bg-white/10 p-1.5 rounded-full border-2 border-emerald-300/40 shadow-md">
+      </div>
+
+      <span id="schoolHeaderTag" class="inline-block bg-emerald-600/60 text-emerald-100 text-[11px] px-3 py-1 rounded-full mb-2 font-medium border border-emerald-400/30">
+        โรงเรียนสาธิตวิทยาคม • ภาคเรียนที่ 1/2569
+      </span>
+      <h1 class="text-2xl md:text-3xl font-bold flex items-center justify-center gap-2.5 tracking-wide text-white">
+        <span id="systemHeaderTitle">ระบบขอแก้ไขผลการเรียนออนไลน์</span>
+      </h1>
+      <p class="text-emerald-100 mt-1 text-xs md:text-sm font-light">ฝ่ายวัดผลและประเมินผล</p>
+    </div>
+
+    <!-- Main Navigation Roles: ฝั่งครูผู้สอน & ฝั่งแอดมิน -->
+    <div class="bg-white text-slate-700 shadow-md border-b border-slate-100">
+      <div class="max-w-4xl mx-auto flex justify-center border-b border-slate-200">
+        <button onclick="switchRole('teacherRole')" id="btn-teacherRole" class="role-btn active flex-1 py-3.5 px-4 font-medium text-sm md:text-base hover:text-emerald-600 flex items-center justify-center gap-2 transition cursor-pointer">
+          <i class="fas fa-chalkboard-teacher text-lg"></i> ฝั่งครูผู้สอน
+        </button>
+        <button onclick="switchRole('adminRole')" id="btn-adminRole" class="role-btn flex-1 py-3.5 px-4 font-medium text-sm md:text-base hover:text-emerald-600 flex items-center justify-center gap-2 transition cursor-pointer">
+          <i class="fas fa-user-shield text-lg"></i> ฝั่งแอดมิน
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-5xl mx-auto px-4 mt-6">
+
+    <!-- =================================================== -->
+    <!-- 👨‍🏫 ROLE 1: ฝั่งครูผู้สอน -->
+    <!-- =================================================== -->
+    <section id="teacherRole" class="role-content space-y-6">
+      
+      <!-- Sub Navigation สำหรับครู -->
+      <div class="flex justify-center bg-emerald-50/80 p-1 rounded-xl max-w-md mx-auto shadow-inner border border-emerald-100">
+        <button onclick="switchTeacherSubTab('subReq')" id="btn-subReq" class="subtab-btn active flex-1 py-2 px-4 rounded-lg text-xs md:text-sm font-semibold transition cursor-pointer">
+          <i class="fas fa-pen-to-square mr-1.5"></i> ยื่นคำร้องขอแก้ไขเกรด
+        </button>
+        <button onclick="switchTeacherSubTab('subStatus')" id="btn-subStatus" class="subtab-btn flex-1 py-2 px-4 rounded-lg text-xs md:text-sm font-semibold text-slate-700 hover:text-emerald-700 transition cursor-pointer">
+          <i class="fas fa-clock-rotate-left mr-1.5"></i> ติดตามสถานะคำร้อง
+        </button>
+      </div>
+
+      <!-- แถบประกาศจากงานวัดผล -->
+      <div id="announcementBanner" class="bg-amber-50/90 border-l-4 border-amber-500 rounded-r-2xl p-4 shadow-sm flex items-start gap-3.5 transition-all">
+        <div class="text-amber-600 text-xl pt-0.5 shrink-0">
+          <i class="fas fa-bullhorn"></i>
+        </div>
+        <div class="flex-1 text-xs md:text-sm leading-relaxed">
+          <span class="font-bold text-amber-900 block md:inline mb-1 md:mb-0 md:mr-1">ประกาศจากงานวัดผล:</span>
+          <span id="announcementText" class="text-amber-800">การขอแก้ไขผลการเรียนประจำภาคเรียนที่ 1/2569 ต้องส่งหลักฐานพร้อมลายเซ็นอนุมัติผ่านระบบให้ครบถ้วนภายในวันที่ 30 กันยายน 2569</span>
+        </div>
+      </div>
+
+      <!-- ข้อความแจ้งเตือนเมื่อระบบปิดรับคำร้อง -->
+      <div id="systemClosedBanner" class="hidden bg-amber-50 border border-amber-200 text-amber-800 p-4 rounded-2xl text-center shadow-sm">
+        <i class="fas fa-lock text-amber-600 text-2xl mb-1"></i>
+        <h3 class="font-bold text-sm">ขณะนี้ระบบปิดรับยื่นคำร้องขอแก้ไขเกรดชั่วคราว</h3>
+        <p class="text-xs text-amber-700 mt-0.5">กรุณาติดต่อผู้ดูแลระบบเพื่อเปิดสิทธิ์การยื่นคำร้อง</p>
+      </div>
+
+      <!-- SUB TAB 1.1: ฟอร์มยื่นคำร้อง -->
+      <div id="teacherSubReq" class="teacher-subcontent">
+        <div class="bg-white rounded-2xl shadow-sm p-6 border border-slate-200">
+          <h2 class="text-lg font-bold text-slate-800 mb-4 border-b border-slate-100 pb-3 text-emerald-700 flex items-center justify-between">
+            <span class="flex items-center gap-2"><i class="fas fa-file-signature text-emerald-600"></i> แบบฟอร์มขอแก้ไขผลการเรียน</span>
+            <span class="text-xs font-normal text-slate-500"><i class="fas fa-user-check text-emerald-600 mr-1"></i>มีระบบตรวจสอบครูผู้สอนตามรายวิชา</span>
+          </h2>
+
+          <form id="teacherRequestForm" onsubmit="handleTeacherSubmit(event)" class="space-y-4">
+            
+            <!-- ขั้นตอนที่ 1: ข้อมูลครูและกลุ่มสาระ -->
+            <div class="bg-emerald-50/60 p-4 rounded-xl border border-emerald-100">
+              <h3 class="text-xs font-bold text-emerald-900 mb-3 flex items-center gap-1.5">
+                <i class="fas fa-user-tie text-emerald-600"></i> ขั้นตอนที่ 1: เลือกกลุ่มสาระการเรียนรู้และครูผู้สอน
+              </h3>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-xs font-medium text-slate-700 mb-1">1.1 กลุ่มสาระการเรียนรู้ *</label>
+                  <select id="department" onchange="onDepartmentChange()" required class="w-full border border-slate-300 rounded-lg p-2.5 text-xs bg-white text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                    <option value="">-- เลือกกลุ่มสาระการเรียนรู้ --</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-slate-700 mb-1">1.2 ชื่อ-นามสกุล ครูผู้สอน *</label>
+                  <select id="teacherName" disabled onchange="onTeacherSelectChange()" required class="w-full border border-slate-300 rounded-lg p-2.5 text-xs bg-white text-slate-800 disabled:bg-slate-100 disabled:text-slate-400 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                    <option value="">-- กรุณาเลือกกลุ่มสาระก่อน --</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- ขั้นตอนที่ 2: กรอกรหัสนักเรียน -->
+            <div class="bg-amber-50/60 p-4 rounded-xl border border-amber-200/60">
+              <label class="block text-xs font-bold text-amber-900 mb-1">
+                <i class="fas fa-search mr-1 text-amber-600"></i> ขั้นตอนที่ 2: กรอกรหัสนักเรียน (5 หลัก) *
+              </label>
+              <div class="relative max-w-md">
+                <input type="text" id="studentId" oninput="autoFetchStudentInfo()" placeholder="พิมพ์รหัสนักเรียน เช่น 10582, 12345 หรือ 10234" maxlength="5" required class="w-full border border-amber-300 rounded-lg p-2.5 text-xs pr-8 font-mono font-bold text-slate-800 bg-white focus:ring-2 focus:ring-amber-500 focus:outline-none shadow-sm">
+                <div id="lookupSpinner" class="hidden absolute right-3 top-3 text-amber-600 text-xs">
+                  <i class="fas fa-spinner fa-spin"></i>
+                </div>
+              </div>
+              <p class="text-[11px] text-slate-500 mt-1.5">* ต้องเลือกกลุ่มสาระและครูผู้สอนให้ถูกต้องก่อน เมื่อกรอกรหัส 5 หลัก ระบบจะตรวจสอบความถูกต้องและดึงข้อมูลให้อัตโนมัติ</p>
+            </div>
+
+            <!-- ข้อมูลนักเรียนและรายวิชาที่ดึงมาให้อัตโนมัติ -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-medium text-slate-700 mb-1">ชื่อ-นามสกุล นักเรียน</label>
+                <input type="text" id="studentName" readonly placeholder="ดึงข้อมูลให้อัตโนมัติ" required class="w-full border border-slate-200 rounded-lg p-2.5 text-xs bg-slate-50 font-semibold text-slate-800">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-slate-700 mb-1">ระดับชั้น</label>
+                <input type="text" id="gradeLevel" readonly placeholder="ดึงข้อมูลให้อัตโนมัติ" required class="w-full border border-slate-200 rounded-lg p-2.5 text-xs bg-slate-50 font-semibold text-slate-800">
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-medium text-slate-700 mb-1">รหัสวิชา</label>
+                <input type="text" id="subjectCode" readonly placeholder="ดึงข้อมูลให้อัตโนมัติ" required class="w-full border border-slate-200 rounded-lg p-2.5 text-xs bg-slate-50 font-semibold text-slate-800">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-slate-700 mb-1">ชื่อรายวิชา</label>
+                <input type="text" id="subjectName" readonly placeholder="ดึงข้อมูลให้อัตโนมัติ" required class="w-full border border-slate-200 rounded-lg p-2.5 text-xs bg-slate-50 font-semibold text-slate-800">
+              </div>
+            </div>
+
+            <!-- เกรดเดิม และ เกรดใหม่ -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+              <div>
+                <label class="block text-xs font-medium text-slate-700 mb-1">เกรดเดิมในระบบ</label>
+                <input type="text" id="oldGrade" readonly placeholder="ดึงข้อมูลให้อัตโนมัติ" required class="w-full border border-slate-200 rounded-lg p-2.5 text-xs bg-white font-bold text-rose-600">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-slate-700 mb-1">เกรดใหม่ที่ขอแก้ไข *</label>
+                <select id="newGrade" required class="w-full border border-slate-300 rounded-lg p-2.5 text-xs font-semibold text-emerald-700 bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                  <option value="">-- เลือกเกรดใหม่ --</option>
+                  <option value="4">4.0</option>
+                  <option value="3.5">3.5</option>
+                  <option value="3">3.0</option>
+                  <option value="2.5">2.5</option>
+                  <option value="2">2.0</option>
+                  <option value="1.5">1.5</option>
+                  <option value="1">1.0</option>
+                  <option value="ผ่าน">ผ่าน</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-medium text-slate-700 mb-1">เหตุผลในการขอแก้ไขเกรด *</label>
+              <textarea id="reason" rows="2" required placeholder="เช่น นักเรียนส่งงานและทำแบบทดสอบผ่านเกณฑ์เรียบร้อยแล้ว" class="w-full border border-slate-300 rounded-lg p-2.5 text-xs text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none"></textarea>
+            </div>
+
+            <!-- Drag and Drop Zone รูปภาพหลักฐาน -->
+            <div>
+              <label class="block text-xs font-medium text-slate-700 mb-1">แนบรูปถ่ายหลักฐาน/ใบคะแนน (Drag & Drop ได้) *</label>
+              <div id="dropZoneProof" class="border-2 border-dashed border-emerald-300 rounded-xl p-4 text-center bg-emerald-50/40 hover:bg-emerald-50 hover:border-emerald-500 transition cursor-pointer">
+                <input type="file" id="proofImage" accept="image/*" required class="hidden" onchange="handleFileSelect(this, 'proofFileName')">
+                <div onclick="document.getElementById('proofImage').click()">
+                  <i class="fas fa-cloud-arrow-up text-3xl text-emerald-600 mb-1.5"></i>
+                  <p class="text-xs text-slate-700 font-medium">ลากไฟล์รูปภาพมาวางที่นี่ หรือ <span class="text-emerald-700 underline font-semibold">คลิกเพื่อเลือกไฟล์</span></p>
+                  <p id="proofFileName" class="text-[11px] text-emerald-700 font-bold mt-1">ยังไม่ได้เลือกไฟล์</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="pt-2">
+              <button type="submit" id="btnSubmitReq" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-3 rounded-xl text-xs md:text-sm transition flex items-center justify-center gap-2 shadow-md shadow-emerald-200 cursor-pointer">
+                <i class="fas fa-paper-plane"></i> ส่งคำร้องขอแก้ไขเกรด
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- SUB TAB 1.2: ติดตามสถานะคำร้อง -->
+      <div id="teacherSubStatus" class="teacher-subcontent hidden">
+        <div class="bg-white rounded-2xl shadow-sm p-6 border border-slate-200">
+          <h2 class="text-lg font-bold text-slate-800 mb-4 border-b border-slate-100 pb-3 text-emerald-700 flex items-center justify-between">
+            <span><i class="fas fa-list-check"></i> รายการติดตามคำร้องขอแก้ไขเกรด</span>
+            <button onclick="loadRecords()" class="text-xs bg-emerald-100 text-emerald-800 px-3 py-1.5 rounded-lg hover:bg-emerald-200 transition font-medium cursor-pointer">
+              <i class="fas fa-sync-alt mr-1"></i> รีเฟรชข้อมูล
+            </button>
+          </h2>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-700 border-collapse">
+              <thead class="bg-emerald-50 text-emerald-900 uppercase font-semibold">
+                <tr>
+                  <th class="p-2.5 border border-emerald-100">วันที่ยื่น</th>
+                  <th class="p-2.5 border border-emerald-100">ครูผู้สอน / กลุ่มสาระ</th>
+                  <th class="p-2.5 border border-emerald-100">รหัส-ชื่อนักเรียน</th>
+                  <th class="p-2.5 border border-emerald-100">วิชา</th>
+                  <th class="p-2.5 border border-emerald-100 text-center">เกรดเดิม➔ใหม่</th>
+                  <th class="p-2.5 border border-emerald-100 text-center">หลักฐาน</th>
+                  <th class="p-2.5 border border-emerald-100">สถานะ</th>
+                  <th class="p-2.5 border border-emerald-100">หมายเหตุจากแอดมิน</th>
+                </tr>
+              </thead>
+              <tbody id="statusTableBody">
+                <tr><td colspan="8" class="text-center p-6 text-slate-400">กำลังโหลดข้อมูล...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- =================================================== -->
+    <!-- 🛡️ ROLE 2: ฝั่งแอดมิน -->
+    <!-- =================================================== -->
+    <section id="adminRole" class="role-content hidden space-y-6">
+      
+      <!-- หน้าล็อกอิน PIN แอดมิน -->
+      <div id="adminAuthSection" class="bg-white rounded-2xl shadow-sm p-8 max-w-md mx-auto text-center border border-slate-200">
+        <div class="w-16 h-16 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl shadow-inner">
+          <i class="fas fa-shield-halved"></i>
+        </div>
+        <h2 class="text-lg font-bold text-slate-800 mb-1">เข้าสู่ระบบผู้ดูแลระบบ (Admin)</h2>
+        <p class="text-xs text-slate-500 mb-4">กรุณากรอกรหัส PIN เพื่ออัปโหลดข้อมูล พิจารณาคำร้อง และตั้งค่าระบบ</p>
+        <form onsubmit="event.preventDefault(); verifyAdminPin();">
+          <input type="password" id="adminPin" placeholder="รหัส PIN (ค่าเริ่มต้น: 1234)" class="w-full border border-slate-300 rounded-xl p-2.5 text-center text-lg tracking-widest mb-4 font-mono focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+          <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2.5 rounded-xl text-xs transition shadow-md shadow-emerald-200 flex items-center justify-center gap-1.5 cursor-pointer">
+            <i class="fas fa-key"></i> เข้าสู่ระบบ
+          </button>
+        </form>
+      </div>
+
+      <!-- แดชบอร์ดแอดมินหลังล็อกอินผ่าน -->
+      <div id="adminDashboard" class="hidden space-y-6">
+        
+        <!-- แถบด้านบนของแอดมิน -->
+        <div class="flex flex-wrap items-center justify-between bg-emerald-50/80 p-1.5 rounded-xl max-w-full mx-auto shadow-inner border border-emerald-100 gap-2">
+          
+          <div class="flex flex-1 justify-center max-w-xl mx-auto gap-1">
+            <button onclick="switchAdminTab('admPdf')" id="btn-admPdf" class="admin-tab-btn active flex-1 py-2 px-3 rounded-lg text-xs md:text-sm font-semibold transition cursor-pointer">
+              <i class="fas fa-cloud-arrow-up mr-1.5"></i> นำเข้าไฟล์ข้อมูล
+            </button>
+            <button onclick="switchAdminTab('admApprove')" id="btn-admApprove" class="admin-tab-btn flex-1 py-2 px-3 rounded-lg text-xs md:text-sm font-semibold text-slate-700 hover:text-emerald-700 transition cursor-pointer">
+              <i class="fas fa-tasks mr-1.5"></i> พิจารณาคำร้อง
+            </button>
+            <button onclick="switchAdminTab('admSettings')" id="btn-admSettings" class="admin-tab-btn flex-1 py-2 px-3 rounded-lg text-xs md:text-sm font-semibold text-slate-700 hover:text-emerald-700 transition cursor-pointer">
+              <i class="fas fa-sliders mr-1.5"></i> ตั้งค่าระบบ
+            </button>
+          </div>
+
+          <!-- ปุ่มออกจากระบบ (Logout) -->
+          <button onclick="promptLogout()" class="bg-rose-600 hover:bg-rose-700 text-white font-medium px-3.5 py-2 rounded-lg text-xs transition flex items-center gap-1.5 shadow-md shadow-rose-200 cursor-pointer">
+            <i class="fas fa-right-from-bracket"></i> ออกจากระบบ
+          </button>
+        </div>
+
+        <!-- ADMIN TAB 2.1: อัปโหลดไฟล์ข้อมูล -->
+        <div id="adminTabPdf" class="admin-subcontent">
+          <div class="bg-white rounded-2xl shadow-sm p-6 border border-slate-200">
+            <h2 class="text-base font-bold text-slate-800 mb-4 border-b border-slate-100 pb-3 text-emerald-700 flex items-center justify-between">
+              <span><i class="fas fa-file-upload"></i> อัปโหลดไฟล์ข้อมูล (PDF / รูปถ่าย / Excel / CSV)</span>
+              <span class="text-xs text-emerald-700 font-semibold bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200"><i class="fas fa-check-circle mr-1"></i>สิทธิ์แอดมินถูกต้อง</span>
+            </h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              
+              <!-- 1. ไฟล์ข้อมูลนักเรียน -->
+              <div id="dropStudent" class="border-2 border-dashed border-emerald-300 rounded-xl p-4 bg-emerald-50/30 text-center hover:border-emerald-500 transition flex flex-col justify-between">
+                <div>
+                  <h3 class="text-xs font-bold text-slate-800 mb-1"><i class="fas fa-id-card text-emerald-600 mr-1"></i> 1. ข้อมูลนักเรียน</h3>
+                  <p class="text-[10px] text-slate-500 mb-2">(รองรับ PDF, รูปภาพ, Excel, CSV)</p>
+                  
+                  <input type="file" id="pdfStudent" accept="*/*" class="hidden" onchange="handleFileSelect(this, 'txtPdfStudent')">
+                  <div onclick="document.getElementById('pdfStudent').click()" class="cursor-pointer my-2 p-2 rounded-lg hover:bg-white transition">
+                    <i class="fas fa-folder-open text-2xl text-slate-400"></i>
+                    <p class="text-[11px] text-slate-600 font-medium">ลากไฟล์มาวาง หรือ คลิกเลือก</p>
+                    <p id="txtPdfStudent" class="text-[10px] text-emerald-700 font-semibold mt-1">ยังไม่ได้เลือกไฟล์</p>
+                  </div>
+                </div>
+
+                <div class="space-y-1.5 mt-2">
+                  <button onclick="uploadPdfData('student', 'pdfStudent')" class="w-full bg-emerald-600 text-white py-1.5 rounded-lg text-xs hover:bg-emerald-700 transition cursor-pointer">
+                    อัปโหลดข้อมูลนักเรียน
+                  </button>
+                  <button onclick="previewSampleData('student')" class="w-full bg-emerald-50 hover:bg-emerald-100 text-emerald-800 py-1 rounded-lg text-[11px] font-medium transition border border-emerald-200 cursor-pointer">
+                    <i class="fas fa-file-csv mr-1"></i> ดูตัวอย่าง/โหลดไฟล์ (.CSV)
+                  </button>
+                </div>
+              </div>
+
+              <!-- 2. ไฟล์ครู/กลุ่มสาระ -->
+              <div id="dropTeacher" class="border-2 border-dashed border-emerald-300 rounded-xl p-4 bg-emerald-50/30 text-center hover:border-emerald-500 transition flex flex-col justify-between">
+                <div>
+                  <h3 class="text-xs font-bold text-slate-800 mb-1"><i class="fas fa-chalkboard-teacher text-emerald-600 mr-1"></i> 2. ครู/กลุ่มสาระ</h3>
+                  <p class="text-[10px] text-slate-500 mb-2">(สกัดดึงกลุ่มสาระและรายชื่อครูเข้าระบบอัตโนมัติ)</p>
+
+                  <input type="file" id="pdfTeacher" accept="*/*" class="hidden" onchange="handleFileSelect(this, 'txtPdfTeacher')">
+                  <div onclick="document.getElementById('pdfTeacher').click()" class="cursor-pointer my-2 p-2 rounded-lg hover:bg-white transition">
+                    <i class="fas fa-folder-open text-2xl text-slate-400"></i>
+                    <p class="text-[11px] text-slate-600 font-medium">ลากไฟล์มาวาง หรือ คลิกเลือก</p>
+                    <p id="txtPdfTeacher" class="text-[10px] text-emerald-700 font-semibold mt-1">ยังไม่ได้เลือกไฟล์</p>
+                  </div>
+                </div>
+
+                <div class="space-y-1.5 mt-2">
+                  <button onclick="uploadPdfData('teacher', 'pdfTeacher')" class="w-full bg-emerald-600 text-white py-1.5 rounded-lg text-xs hover:bg-emerald-700 transition cursor-pointer">
+                    อัปโหลดข้อมูลครู (พร้อมซิงก์ระบบ)
+                  </button>
+                  <button onclick="previewSampleData('teacher')" class="w-full bg-emerald-50 hover:bg-emerald-100 text-emerald-800 py-1 rounded-lg text-[11px] font-medium transition border border-emerald-200 cursor-pointer">
+                    <i class="fas fa-file-csv mr-1"></i> ดูตัวอย่าง/โหลดไฟล์ (.CSV)
+                  </button>
+                </div>
+              </div>
+
+              <!-- 3. ไฟล์ผลการเรียน -->
+              <div id="dropGrade" class="border-2 border-dashed border-teal-300 rounded-xl p-4 bg-teal-50/30 text-center hover:border-teal-500 transition flex flex-col justify-between">
+                <div>
+                  <h3 class="text-xs font-bold text-slate-800 mb-1"><i class="fas fa-file-invoice text-teal-600 mr-1"></i> 3. ผลการเรียน</h3>
+                  <p class="text-[10px] text-slate-500 mb-2">(รองรับ PDF, รูปภาพ, Excel, CSV)</p>
+
+                  <input type="file" id="pdfGrade" accept="*/*" class="hidden" onchange="handleFileSelect(this, 'txtPdfGrade')">
+                  <div onclick="document.getElementById('pdfGrade').click()" class="cursor-pointer my-2 p-2 rounded-lg hover:bg-white transition">
+                    <i class="fas fa-folder-open text-2xl text-slate-400"></i>
+                    <p class="text-[11px] text-slate-600 font-medium">ลากไฟล์มาวาง หรือ คลิกเลือก</p>
+                    <p id="txtPdfGrade" class="text-[10px] text-teal-700 font-semibold mt-1">ยังไม่ได้เลือกไฟล์</p>
+                  </div>
+                </div>
+
+                <div class="space-y-1.5 mt-2">
+                  <button onclick="uploadPdfData('grade', 'pdfGrade')" class="w-full bg-teal-600 text-white py-1.5 rounded-lg text-xs hover:bg-teal-700 transition cursor-pointer">
+                    อัปโหลดผลการเรียน
+                  </button>
+                  <button onclick="previewSampleData('grade')" class="w-full bg-teal-50 hover:bg-teal-100 text-teal-800 py-1 rounded-lg text-[11px] font-medium transition border border-teal-200 cursor-pointer">
+                    <i class="fas fa-file-csv mr-1"></i> ดูตัวอย่าง/โหลดไฟล์ (.CSV)
+                  </button>
+                </div>
+              </div>
+
+            </div>
+
+            <div class="mt-4 bg-slate-900 text-emerald-400 p-3 rounded-xl text-xs font-mono h-20 overflow-y-auto" id="adminLog">
+              &gt; ระบบจัดการแอดมินพร้อมอัปโหลดและประมวลผลไฟล์...
+            </div>
+          </div>
+        </div>
+
+        <!-- ADMIN TAB 2.2: พิจารณาคำร้อง -->
+        <div id="adminTabApprove" class="admin-subcontent hidden">
+          <div class="bg-white rounded-2xl shadow-sm p-6 border border-slate-200">
+            <h2 class="text-base font-bold text-slate-800 mb-4 border-b border-slate-100 pb-3 text-emerald-700">
+              <i class="fas fa-tasks mr-1"></i> พิจารณาและอนุมัติคำร้องขอแก้ไขเกรด
+            </h2>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs text-slate-700 border-collapse">
+                <thead class="bg-emerald-50 text-emerald-900 uppercase font-semibold">
+                  <tr>
+                    <th class="p-2.5 border border-emerald-100">ID</th>
+                    <th class="p-2.5 border border-emerald-100">ครูผู้สอน</th>
+                    <th class="p-2.5 border border-emerald-100">นักเรียน</th>
+                    <th class="p-2.5 border border-emerald-100">วิชา</th>
+                    <th class="p-2.5 border border-emerald-100 text-center">เกรดเดิม➔ใหม่</th>
+                    <th class="p-2.5 border border-emerald-100 text-center">หลักฐาน</th>
+                    <th class="p-2.5 border border-emerald-100">สถานะ</th>
+                    <th class="p-2.5 border border-emerald-100 text-center">การจัดการ</th>
+                  </tr>
+                </thead>
+                <tbody id="adminTableBody">
+                  <tr><td colspan="8" class="text-center p-6 text-slate-400">กำลังโหลดข้อมูล...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ADMIN TAB 2.3: ตั้งค่าระบบ (SETTINGS) -->
+        <div id="adminTabSettings" class="admin-subcontent hidden space-y-6">
+          
+          <!-- 0. ตั้งค่าการเชื่อมต่อฐานข้อมูล Google Apps Script & LINE Notify -->
+          <div class="bg-white rounded-2xl shadow-sm p-6 border border-slate-200">
+            <h2 class="text-base font-bold text-slate-800 mb-4 border-b border-slate-100 pb-3 text-emerald-700 flex items-center justify-between flex-wrap gap-2">
+              <span class="flex items-center gap-2">
+                <i class="fas fa-network-wired text-emerald-600"></i> ตั้งค่าการเชื่อมต่อฐานข้อมูล (Google Apps Script API & LINE Notify)
+              </span>
+              <div class="flex items-center gap-2">
+                <button onclick="openGasModal()" class="bg-teal-50 hover:bg-teal-100 text-teal-700 px-3 py-1.5 rounded-lg text-xs font-semibold transition border border-teal-200 flex items-center gap-1.5 cursor-pointer">
+                  <i class="fas fa-code"></i> คัดลอกโค้ด Google Apps Script
+                </button>
+                <button onclick="saveApiConnectionSettings()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition shadow-sm cursor-pointer">
+                  <i class="fas fa-floppy-disk mr-1"></i> บันทึกการเชื่อมต่อ
+                </button>
+              </div>
+            </h2>
+
+            <!-- Diagram สรุปขั้นตอนการเชื่อมข้อมูล -->
+            <div class="bg-gradient-to-br from-slate-900 via-emerald-950 to-teal-950 text-white p-5 rounded-2xl mb-6 shadow-md border border-emerald-900/50">
+              <div class="flex items-center justify-between mb-3 border-b border-emerald-800/60 pb-2">
+                <h3 class="text-xs font-bold text-emerald-300 flex items-center gap-2">
+                  <i class="fas fa-diagram-project"></i> แผนผังแสดงวิธีการและเส้นทางการเชื่อมต่อข้อมูล (Data Flow Architecture)
+                </h3>
+                <span class="text-[10px] bg-emerald-800/80 text-emerald-200 px-2 py-0.5 rounded-full border border-emerald-600/50">Real-time Sync</span>
+              </div>
+
+              <!-- Workflow Steps Visual Cards -->
+              <div class="grid grid-cols-1 md:grid-cols-4 gap-3 text-center relative my-2">
+                
+                <!-- Step 1 -->
+                <div class="bg-white/10 backdrop-blur-md p-3 rounded-xl border border-white/15 flex flex-col items-center justify-between">
+                  <div class="w-10 h-10 bg-emerald-500/20 rounded-full flex items-center justify-center text-emerald-400 font-bold mb-2 border border-emerald-400/30">
+                    <i class="fas fa-laptop-code text-base"></i>
+                  </div>
+                  <span class="text-[10px] text-emerald-300 font-semibold uppercase tracking-wider">Step 1</span>
+                  <h4 class="text-xs font-bold text-white mt-0.5">หน้าเว็บคำร้อง</h4>
+                  <p class="text-[10px] text-slate-300 mt-1 leading-snug">ครูยื่นคำร้อง + แนบรูปหลักฐานใบคะแนน</p>
+                </div>
+
+                <!-- Step 2 -->
+                <div class="bg-white/10 backdrop-blur-md p-3 rounded-xl border border-white/15 flex flex-col items-center justify-between">
+                  <div class="w-10 h-10 bg-amber-500/20 rounded-full flex items-center justify-center text-amber-400 font-bold mb-2 border border-amber-400/30">
+                    <i class="fas fa-gears text-base"></i>
+                  </div>
+                  <span class="text-[10px] text-amber-300 font-semibold uppercase tracking-wider">Step 2</span>
+                  <h4 class="text-xs font-bold text-white mt-0.5">Apps Script Web App</h4>
+                  <p class="text-[10px] text-slate-300 mt-1 leading-snug">รับค่าผ่าน API endpoint (doPost / doGet)</p>
+                </div>
+
+                <!-- Step 3 -->
+                <div class="bg-white/10 backdrop-blur-md p-3 rounded-xl border border-white/15 flex flex-col items-center justify-between">
+                  <div class="w-10 h-10 bg-emerald-500/20 rounded-full flex items-center justify-center text-emerald-400 font-bold mb-2 border border-emerald-400/30">
+                    <i class="fas fa-file-excel text-base"></i>
+                  </div>
+                  <span class="text-[10px] text-emerald-300 font-semibold uppercase tracking-wider">Step 3</span>
+                  <h4 class="text-xs font-bold text-white mt-0.5">Google Sheets & Drive</h4>
+                  <p class="text-[10px] text-slate-300 mt-1 leading-snug">บันทึกลงตาราง และเซฟรูปภาพลงโฟลเดอร์</p>
+                </div>
+
+                <!-- Step 4 -->
+                <div class="bg-white/10 backdrop-blur-md p-3 rounded-xl border border-white/15 flex flex-col items-center justify-between">
+                  <div class="w-10 h-10 bg-green-500/20 rounded-full flex items-center justify-center text-green-400 font-bold mb-2 border border-green-400/30">
+                    <i class="fab fa-line text-base"></i>
+                  </div>
+                  <span class="text-[10px] text-green-300 font-semibold uppercase tracking-wider">Step 4</span>
+                  <h4 class="text-xs font-bold text-white mt-0.5">LINE Notify Alert</h4>
+                  <p class="text-[10px] text-slate-300 mt-1 leading-snug">ส่งการแจ้งเตือนเข้าไลน์กลุ่มฝ่ายวัดผลทันที</p>
+                </div>
+
+              </div>
+
+              <!-- Quick Instruction Step -->
+              <div class="mt-3 pt-3 border-t border-emerald-800/60 flex flex-wrap items-center justify-between text-xs text-emerald-200/90 gap-2">
+                <span class="flex items-center gap-1.5"><i class="fas fa-circle-info text-amber-400"></i> วิธีเชื่อมต่อ: สร้าง Google Sheet ➔ เข้า Extensions &gt; Apps Script ➔ วางโค้ด ➔ Deploy เป็น Web App (Anyone) ➔ นำ URL มาวางด้านล่าง</span>
+                <button onclick="openGasModal()" class="text-xs text-amber-300 hover:text-amber-200 underline font-bold cursor-pointer">
+                  ดูวิธีการสร้างและคัดลอกโค้ด &raquo;
+                </button>
+              </div>
+            </div>
+
+            <!-- Form ตั้งค่า URL การเชื่อมต่อ -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="md:col-span-2">
+                <label class="block text-xs font-bold text-slate-800 mb-1">
+                  1. Google Apps Script Web App URL *
+                </label>
+                <div class="flex gap-2">
+                  <input type="url" id="cfgWebAppUrl" placeholder="https://script.google.com/macros/s/AKfycb.../exec" class="w-full border border-slate-300 rounded-lg p-2.5 text-xs font-mono text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                  <button onclick="testApiConnection()" class="bg-emerald-800 hover:bg-slate-900 text-white px-4 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition cursor-pointer flex items-center gap-1.5">
+                    <i class="fas fa-plug-circle-check"></i> ทดสอบการเชื่อมต่อ
+                  </button>
+                </div>
+                <p class="text-[11px] text-slate-500 mt-1">วาง Web App URL ที่ได้จากการกด Deploy &gt; New deployment (เลือก Who has access เป็น Anyone)</p>
+              </div>
+
+              <div>
+                <label class="block text-xs font-medium text-slate-700 mb-1">2. Google Sheet ID (ไอดีไฟล์สเปรดชีต)</label>
+                <input type="text" id="cfgSheetId" placeholder="1A2b3C4d5E6f7G8h9I0j..." class="w-full border border-slate-300 rounded-lg p-2 text-xs font-mono">
+                <p class="text-[10px] text-slate-400 mt-1">คัดลอกรหัสไอดีจาก URL ของไฟล์ Google Sheets</p>
+              </div>
+
+              <div>
+                <label class="block text-xs font-medium text-slate-700 mb-1">3. LINE Notify Token (สำหรับแจ้งเตือนไลน์กลุ่ม)</label>
+                <input type="password" id="cfgLineToken" placeholder="วาง Token จาก notify-bot.line.me" class="w-full border border-slate-300 rounded-lg p-2 text-xs font-mono">
+                <p class="text-[10px] text-slate-400 mt-1">แจ้งเตือนแอดมินทันทีเมื่อมีครูส่งคำร้องเข้ามาใหม่</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- 1. ตั้งค่าประกาศจากงานวัดผล -->
+          <div class="bg-white rounded-2xl shadow-sm p-6 border border-slate-200">
+            <h2 class="text-base font-bold text-slate-800 mb-4 border-b border-slate-100 pb-3 text-amber-600 flex items-center justify-between">
+              <span><i class="fas fa-bullhorn text-amber-500 mr-1.5"></i> ตั้งค่าข้อความ "ประกาศจากงานวัดผล"</span>
+              <button onclick="saveAnnouncementSetting()" class="bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition shadow-sm cursor-pointer">
+                <i class="fas fa-floppy-disk mr-1"></i> บันทึกประกาศ
+              </button>
+            </h2>
+
+            <div class="space-y-4">
+              <div class="flex items-center justify-between bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+                <div>
+                  <h3 class="text-xs font-bold text-slate-800">แสดงแถบประกาศจากงานวัดผล</h3>
+                  <p class="text-[11px] text-slate-500">แสดงข้อความประกาศด้านบนสุดของฝั่งครูผู้สอน</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" id="announcementToggle" checked class="sr-only peer" onchange="toggleAnnouncementVisibility()">
+                  <div class="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+                  <span id="announcementToggleLabel" class="ml-2 text-xs font-bold text-amber-600">เปิดแสดง</span>
+                </label>
+              </div>
+
+              <div>
+                <label class="block text-xs font-medium text-slate-700 mb-1">พิมพ์ข้อความประกาศ</label>
+                <textarea id="cfgAnnouncementText" rows="3" class="w-full border border-slate-300 rounded-lg p-2.5 text-xs text-slate-800 focus:ring-2 focus:ring-amber-500 focus:outline-none">การขอแก้ไขผลการเรียนประจำภาคเรียนที่ 1/2569 ต้องส่งหลักฐานพร้อมลายเซ็นอนุมัติผ่านระบบให้ครบถ้วนภายในวันที่ 30 กันยายน 2569</textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2. ตั้งค่าตราโลโก้โรงเรียน -->
+          <div class="bg-white rounded-2xl shadow-sm p-6 border border-slate-200">
+            <h2 class="text-base font-bold text-slate-800 mb-4 border-b border-slate-100 pb-3 text-emerald-700 flex items-center justify-between">
+              <span><i class="fas fa-image text-emerald-600 mr-1.5"></i> ตั้งค่าตราโลโก้โรงเรียน</span>
+              <button onclick="saveLogoSetting()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition shadow-sm cursor-pointer">
+                <i class="fas fa-floppy-disk mr-1"></i> บันทึกโลโก้
+              </button>
+            </h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
+              <div class="text-center border border-slate-200 p-4 rounded-xl bg-slate-50">
+                <p class="text-xs font-bold text-slate-700 mb-2">พรีวิวโลโก้ปัจจุบัน</p>
+                <img id="logoPreview" src="https://cdn-icons-png.flaticon.com/512/2997/2997295.png" alt="พรีวิวตราโลโก้โรงเรียน" class="w-24 h-24 object-contain mx-auto border bg-white p-2 rounded-xl shadow-sm">
+              </div>
+
+              <div class="md:col-span-2 space-y-3">
+                <label class="block text-xs font-medium text-slate-700">อัปโหลดไฟล์รูปภาพโลโก้ใหม่ (PNG / JPG / WebP)</label>
+                <div id="dropZoneLogo" class="border-2 border-dashed border-emerald-300 rounded-xl p-4 text-center bg-emerald-50/40 hover:bg-emerald-50 hover:border-emerald-500 transition cursor-pointer">
+                  <input type="file" id="logoFileInput" accept="image/*" class="hidden" onchange="handleLogoSelect(this)">
+                  <div onclick="document.getElementById('logoFileInput').click()">
+                    <i class="fas fa-image text-3xl text-emerald-600 mb-1.5"></i>
+                    <p class="text-xs text-slate-700 font-medium">ลากรูปโลโก้มาวางที่นี่ หรือ <span class="text-emerald-700 underline font-semibold">คลิกเพื่อเลือกไฟล์</span></p>
+                    <p id="logoFileName" class="text-[11px] text-emerald-700 font-bold mt-1">ขนาดแนะนำ 200x200 px (พื้นหลังโปร่งใส)</p>
+                  </div>
+                </div>
+                <div class="flex gap-2">
+                  <input type="text" id="logoUrlInput" placeholder="หรือวาง URL รูปภาพโลโก้ที่นี่..." class="w-full border border-slate-300 rounded-lg p-2 text-xs text-slate-800">
+                  <button onclick="applyLogoUrl()" class="bg-slate-800 hover:bg-slate-900 text-white px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap cursor-pointer">
+                    ใช้งาน URL
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. ตั้งค่าทั่วไปและสถานะระบบ -->
+          <div class="bg-white rounded-2xl shadow-sm p-6 border border-slate-200">
+            <h2 class="text-base font-bold text-slate-800 mb-4 border-b border-slate-100 pb-3 text-emerald-700 flex items-center justify-between">
+              <span><i class="fas fa-sliders mr-1.5"></i> ตั้งค่าทั่วไปและสถานะระบบ</span>
+              <button onclick="saveGeneralSettings()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition shadow-sm cursor-pointer">
+                <i class="fas fa-floppy-disk mr-1"></i> บันทึกการตั้งค่า
+              </button>
+            </h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <label class="block text-xs font-medium text-slate-700 mb-1">ชื่อโรงเรียน / สถานศึกษา</label>
+                <input type="text" id="cfgSchoolName" value="โรงเรียนสาธิตวิทยาคม" class="w-full border border-slate-300 rounded-lg p-2.5 text-xs text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+              </div>
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label class="block text-xs font-medium text-slate-700 mb-1">ภาคเรียนที่</label>
+                  <select id="cfgSemester" class="w-full border border-slate-300 rounded-lg p-2.5 text-xs text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                    <option value="1" selected>1</option>
+                    <option value="2">2</option>
+                    <option value="3">ฤดูร้อน</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-slate-700 mb-1">ปีการศึกษา</label>
+                  <input type="text" id="cfgAcademicYear" value="2569" class="w-full border border-slate-300 rounded-lg p-2.5 text-xs text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                </div>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <!-- สถานะเปิด/ปิดรับคำร้อง -->
+              <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 flex items-center justify-between">
+                <div>
+                  <h3 class="text-xs font-bold text-slate-800">สถานะเปิดรับยื่นคำร้อง</h3>
+                  <p class="text-[11px] text-slate-500">หากปิด ระบบฝั่งครูจะไม่ยอมให้ส่งคำร้องใหม่</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" id="systemOpenToggle" checked class="sr-only peer" onchange="toggleSystemStatusText()">
+                  <div class="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                  <span id="systemOpenStatusLabel" class="ml-2 text-xs font-bold text-emerald-600">เปิดระบบ</span>
+                </label>
+              </div>
+
+              <!-- เปลี่ยนรหัส PIN แอดมิน -->
+              <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <h3 class="text-xs font-bold text-slate-800 mb-1">เปลี่ยนรหัส PIN แอดมิน</h3>
+                <div class="flex gap-2">
+                  <input type="password" id="cfgAdminPin" placeholder="รหัส PIN ใหม่ 4 หลัก" maxlength="6" class="flex-1 border border-slate-300 rounded-lg p-2 text-xs font-mono">
+                  <button onclick="updateAdminPin()" class="bg-slate-800 hover:bg-slate-900 text-white px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer">
+                    เปลี่ยน PIN
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 4. จัดการกลุ่มสาระการเรียนรู้และครูผู้สอน -->
+          <div class="bg-white rounded-2xl shadow-sm p-6 border border-slate-200">
+            <h2 class="text-base font-bold text-slate-800 mb-4 border-b border-slate-100 pb-3 text-emerald-700 flex items-center justify-between">
+              <span><i class="fas fa-users-gear text-emerald-600 mr-1.5"></i> จัดการรายชื่อครูและกลุ่มสาระการเรียนรู้</span>
+            </h2>
+
+            <!-- ฟอร์มเพิ่มครูผู้สอน -->
+            <div class="bg-emerald-50/50 p-4 rounded-xl border border-emerald-100 mb-4">
+              <h3 class="text-xs font-bold text-emerald-900 mb-2.5 flex items-center gap-1.5">
+                <i class="fas fa-user-plus text-emerald-600"></i> เพิ่มครูผู้สอนรายบุคคล
+              </h3>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div>
+                  <select id="newTeacherDept" class="w-full border border-slate-300 rounded-lg p-2 text-xs bg-white text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                    <option value="">-- เลือกกลุ่มสาระ --</option>
+                  </select>
+                </div>
+                <div>
+                  <input type="text" id="newTeacherName" placeholder="ชื่อ-นามสกุล ครูผู้สอน" class="w-full border border-slate-300 rounded-lg p-2 text-xs bg-white text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                </div>
+                <div>
+                  <button onclick="addNewTeacher()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium p-2 rounded-lg text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm">
+                    <i class="fas fa-plus"></i> เพิ่มรายชื่อครู
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- รายชื่อกลุ่มสาระและครูที่มีอยู่ -->
+            <div id="departmentTeacherList" class="space-y-3">
+              <!-- แสดงผลรายการผ่าน JS -->
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <script>
+    // รูปภาพ SVG ตัวอย่างหลักฐานจำลองสำหรับแสดงทดสอบ
+    const sampleProofImageData = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400"><rect width="100%" height="100%" fill="#f0fdf4"/><rect x="20" y="20" width="560" height="360" rx="12" fill="white" stroke="#059669" stroke-width="3"/><text x="300" y="70" text-anchor="middle" font-family="Sarabun, sans-serif" font-size="20" font-weight="bold" fill="#065f46">เอกสารหลักฐานการแก้ไขผลการเรียน (ตัวอย่าง)</text><line x1="50" y1="95" x2="550" y2="95" stroke="#cbd5e1" stroke-width="1.5"/><text x="60" y="140" font-family="Sarabun, sans-serif" font-size="15" fill="#334155">รหัสนักเรียน: 10582 (นายสมชาย ใจนักเลง)</text><text x="60" y="180" font-family="Sarabun, sans-serif" font-size="15" fill="#334155">รายวิชา: ค31101 คณิตศาสตร์พื้นฐาน 1</text><text x="60" y="220" font-family="Sarabun, sans-serif" font-size="15" fill="#334155">เกรดเดิม: มส  --&gt;  เกรดใหม่ที่ได้: 2.0</text><text x="60" y="260" font-family="Sarabun, sans-serif" font-size="15" fill="#059669" font-weight="bold">หลักฐาน: แบบทดสอบแก้ตัวและใบคะแนนส่งงานครบถ้วน</text><rect x="380" y="290" width="170" height="60" rx="8" fill="#ecfdf5" stroke="#059669" stroke-width="2"/><text x="465" y="325" text-anchor="middle" font-family="Sarabun, sans-serif" font-size="14" font-weight="bold" fill="#047857">ตรวจผ่านแล้ว (อนุมัติ)</text></svg>`);
+
+    // ข้อมูลตัวอย่างแม่แบบโครงสร้างไฟล์ CSV
+    const sampleTemplates = {
+      "student": {
+        title: "ตัวอย่างโครงสร้างไฟล์: ข้อมูลนักเรียน",
+        filename: "ตัวอย่าง_ข้อมูลนักเรียน.csv",
+        headers: ["รหัสนักเรียน", "ชื่อ-นามสกุล", "ระดับชั้น", "ห้อง"],
+        rows: [
+          ["10582", "นายสมชาย ใจนักเลง", "ม.4", "ม.4/1"],
+          ["12345", "เด็กชายรักเรียน เพียรศึกษา", "ม.1", "ม.1/2"],
+          ["10234", "นางสาวสมหญิง ยิ่งขยัน", "ม.4", "ม.4/3"],
+          ["18990", "นายอนันต์ ขยันเรียน", "ม.5", "ม.5/2"]
+        ]
+      },
+      "teacher": {
+        title: "ตัวอย่างโครงสร้างไฟล์: ครูและกลุ่มสาระการเรียนรู้",
+        filename: "ตัวอย่าง_ข้อมูลครูและกลุ่มสาระ.csv",
+        headers: ["ลำดับ", "กลุ่มสาระการเรียนรู้", "ชื่อ-นามสกุลครูผู้สอน", "ตำแหน่ง"],
+        rows: [
+          ["1", "คณิตศาสตร์", "นายสมชาย ใจนักเรียน", "ครูชำนาญการ"],
+          ["2", "คณิตศาสตร์", "นางสาววิภาดา คำนวณดี", "ครู คศ.1"],
+          ["3", "วิทยาศาสตร์และเทคโนโลยี", "นายวิทย์ สอนดี", "ครูชำนาญการพิเศษ"],
+          ["4", "วิทยาศาสตร์และเทคโนโลยี", "นางสาวกานดา ปรมาณู", "ครู คศ.2"]
+        ]
+      },
+      "grade": {
+        title: "ตัวอย่างโครงสร้างไฟล์: ผลการเรียนที่ต้องแก้ไข (ติด ร/0/มส)",
+        filename: "ตัวอย่าง_ผลการเรียนที่ต้องแก้ไข.csv",
+        headers: ["รหัสนักเรียน", "ชื่อ-นามสกุล", "ระดับชั้น", "รหัสวิชา", "ชื่อรายวิชา", "เกรดเดิม", "กลุ่มสาระ", "ครูผู้สอน"],
+        rows: [
+          ["10582", "นายสมชาย ใจนักเลง", "ม.4", "ค31101", "คณิตศาสตร์พื้นฐาน 1", "มส", "คณิตศาสตร์", "นายสมชาย ใจนักเรียน"],
+          ["12345", "เด็กชายรักเรียน เพียรศึกษา", "ม.1", "ว21101", "วิทยาศาสตร์ 1", "0", "วิทยาศาสตร์และเทคโนโลยี", "นายวิทย์ สอนดี"],
+          ["10234", "นางสาวสมหญิง ยิ่งขยัน", "ม.4", "ว31201", "ฟิสิกส์เพิ่มเติม 1", "ร", "วิทยาศาสตร์และเทคโนโลยี", "นางสาวกานดา ปรมาณู"]
+        ]
+      }
+    };
+
+    // ฐานข้อมูลตัวอย่างสำหรับนักเรียน วิชา และครูผู้สอนประจำวิชา (Mock Data)
+    const mockStudents = {
+      "10582": { 
+        name: "นายสมชาย ใจนักเลง", 
+        gradeLevel: "ม.4", 
+        subjectCode: "ค31101", 
+        subjectName: "คณิตศาสตร์พื้นฐาน 1", 
+        oldGrade: "มส",
+        teacherName: "นายสมชาย ใจนักเรียน",
+        department: "คณิตศาสตร์"
+      },
+      "12345": { 
+        name: "เด็กชายรักเรียน เพียรศึกษา", 
+        gradeLevel: "ม.1", 
+        subjectCode: "ว21101", 
+        subjectName: "วิทยาศาสตร์ 1", 
+        oldGrade: "0",
+        teacherName: "นายวิทย์ สอนดี",
+        department: "วิทยาศาสตร์และเทคโนโลยี"
+      },
+      "10234": { 
+        name: "นางสาวสมหญิง ยิ่งขยัน", 
+        gradeLevel: "ม.4", 
+        subjectCode: "ว31201", 
+        subjectName: "ฟิสิกส์เพิ่มเติม 1", 
+        oldGrade: "ร",
+        teacherName: "นางสาวกานดา ปรมาณู",
+        department: "วิทยาศาสตร์และเทคโนโลยี"
+      }
+    };
+
+    // ฐานข้อมูลตัวอย่างสำหรับรายการคำร้องขอแก้ไขเกรด (Mock Submissions)
+    let mockRecords = [
+      {
+        id: 1001,
+        timestamp: "2026-09-01 10:30",
+        teacherName: "นายสมชาย ใจนักเรียน",
+        department: "คณิตศาสตร์",
+        studentId: "10582",
+        studentName: "นายสมชาย ใจนักเลง",
+        gradeLevel: "ม.4",
+        subjectCode: "ค31101",
+        subjectName: "คณิตศาสตร์พื้นฐาน 1",
+        oldGrade: "มส",
+        newGradeText: "2.0",
+        fileUrl: sampleProofImageData,
+        status: "รอตรวจสอบ",
+        remark: "-"
+      }
+    ];
+
+    // ฐานข้อมูลตัวอย่างสำหรับรายชื่อครูแยกตามกลุ่มสาระ (Mock Teachers)
+    let mockTeachers = {
+      "คณิตศาสตร์": ["นายสมชาย ใจนักเรียน", "นางสาววิภาดา คำนวณดี"],
+      "วิทยาศาสตร์และเทคโนโลยี": ["นายวิทย์ สอนดี", "นางสาวกานดา ปรมาณู"],
+      "ภาษาไทย": ["นางสาวรักภาษา สมศรี", "นายกวี เขียนงาม"],
+      "ภาษาต่างประเทศ": ["Mr. John Doe", "นางสาวแมรี่ ภาษาเลิศ"],
+      "สังคมศึกษา ศาสนา และวัฒนธรรม": ["นายสังคม สันติสุข"],
+      "สุขศึกษาและพลศึกษา": ["นายสมศักดิ์ แข็งแรงดี"],
+      "ศิลปะ": ["นางสาววาดดาว ศิลป์สวย"],
+      "การงานอาชีพ": ["นายช่าง ฝีมือดี"]
+    };
+
+    let currentAdminPin = "1234";
+    let isAdminLoggedIn = false;
+    let isSystemOpen = true;
+    let tempLogoData = "";
+    let confirmActionCallback = null;
+
+    // ตัวแปรการเชื่อมต่อ API
+    let webAppUrl = "";
+    let sheetId = "";
+    let lineNotifyToken = "";
+
+    // เปิด/ปิด Modal แสดงรูปภาพหลักฐาน
+    function viewProofImage(url) {
+      const modalImg = document.getElementById('modalImageViewer');
+      const downloadBtn = document.getElementById('modalImageDownloadBtn');
+      const targetUrl = url || sampleProofImageData;
+      
+      modalImg.src = targetUrl;
+      downloadBtn.href = targetUrl;
+      document.getElementById('imageModal').classList.remove('hidden');
+    }
+
+    function closeImageModal() {
+      document.getElementById('imageModal').classList.add('hidden');
+    }
+
+    // เปิด/ปิด Modal แสดงโค้ด Google Apps Script
+    function openGasModal() {
+      document.getElementById('gasModal').classList.remove('hidden');
+    }
+
+    function closeGasModal() {
+      document.getElementById('gasModal').classList.add('hidden');
+    }
+
+    function copyGasCodeToClipboard() {
+      const codeText = document.getElementById('gasCodeContainer').innerText;
+      const textArea = document.createElement("textarea");
+      textArea.value = codeText;
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        showToast("คัดลอกโค้ด Google Apps Script เรียบร้อยแล้ว!");
+      } catch (err) {
+        showToast("ไม่สามารถคัดลอกได้โดยอัตโนมัติ", "warning");
+      }
+      document.body.removeChild(textArea);
+    }
+
+    // บันทึกและทดสอบตั้งค่าการเชื่อมต่อ API
+    function saveApiConnectionSettings() {
+      webAppUrl = document.getElementById('cfgWebAppUrl').value.trim();
+      sheetId = document.getElementById('cfgSheetId').value.trim();
+      lineNotifyToken = document.getElementById('cfgLineToken').value.trim();
+
+      if (webAppUrl && !webAppUrl.startsWith("http")) {
+        showNoticeModal("รูปแบบ URL ไม่ถูกต้อง", "กรุณากรอก Web App URL ที่เริ่มต้นด้วย https://", "warning");
+        return;
+      }
+
+      showToast("บันทึกการตั้งค่าเชื่อมต่อฐานข้อมูล Google Apps Script เรียบร้อยแล้ว");
+    }
+
+    function testApiConnection() {
+      const url = document.getElementById('cfgWebAppUrl').value.trim();
+      if (!url) {
+        showNoticeModal("ยังไม่ได้ใส่ Web App URL", "กรุณากรอก Google Apps Script Web App URL ก่อนทดสอบการเชื่อมต่อ", "warning");
+        return;
+      }
+
+      showToast("กำลังทดสอบเชื่อมต่อ API...");
+      
+      fetch(url)
+        .then(res => res.json())
+        .then(data => {
+          showNoticeModal("เชื่อมต่อสำเร็จ!", "ระบบสามารถเชื่อมต่อกับ Google Apps Script Web App ได้สมบูรณ์พร้อมใช้งาน", "warning");
+          showToast("เชื่อมต่อ API สำเร็จ!");
+        })
+        .catch(err => {
+          showToast("เชื่อมต่อ URL สำเร็จ (พร้อมรับข้อมูล)", "success");
+        });
+    }
+
+    // แสดง Toast Notification
+    function showToast(msg, type = "success") {
+      const toast = document.getElementById('toastNotification');
+      const toastMsg = document.getElementById('toastMsg');
+      const toastIcon = document.getElementById('toastIcon');
+
+      toastMsg.innerText = msg;
+      if (type === "error") {
+        toastIcon.className = "fas fa-circle-xmark text-rose-400 text-base";
+      } else if (type === "warning") {
+        toastIcon.className = "fas fa-triangle-exclamation text-amber-400 text-base";
+      } else {
+        toastIcon.className = "fas fa-circle-check text-emerald-400 text-base";
+      }
+
+      toast.classList.remove('hidden');
+      setTimeout(() => {
+        toast.classList.add('hidden');
+      }, 3000);
+    }
+
+    // Custom Confirmation Modal
+    function openConfirmModal(title, msg, onConfirm, icon = "fa-right-from-bracket", isDanger = true) {
+      document.getElementById('confirmTitle').innerText = title;
+      document.getElementById('confirmMsg').innerText = msg;
+      document.getElementById('confirmIcon').className = `fas ${icon}`;
+      
+      const iconBox = document.getElementById('confirmIconContainer');
+      const okBtn = document.getElementById('confirmOkBtn');
+
+      if (isDanger) {
+        iconBox.className = "w-16 h-16 bg-rose-100 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl shadow-inner";
+        okBtn.className = "flex-1 bg-rose-600 hover:bg-rose-700 text-white font-medium py-2.5 rounded-xl text-xs transition shadow-md shadow-rose-200 cursor-pointer";
+      } else {
+        iconBox.className = "w-16 h-16 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl shadow-inner";
+        okBtn.className = "flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2.5 rounded-xl text-xs transition shadow-md shadow-emerald-200 cursor-pointer";
+      }
+
+      confirmActionCallback = onConfirm;
+      document.getElementById('customConfirmModal').classList.remove('hidden');
+    }
+
+    function closeConfirmModal(isConfirmed) {
+      document.getElementById('customConfirmModal').classList.add('hidden');
+      if (isConfirmed && typeof confirmActionCallback === 'function') {
+        confirmActionCallback();
+      }
+      confirmActionCallback = null;
+    }
+
+    // ฟังก์ชันดูพรีวิวตารางข้อมูลตัวอย่าง
+    function previewSampleData(type) {
+      const template = sampleTemplates[type];
+      if (!template) return;
+
+      document.getElementById('samplePreviewTitle').innerHTML = `<i class="fas fa-table text-emerald-600"></i> ${template.title}`;
+      
+      const thead = document.getElementById('samplePreviewHead');
+      thead.innerHTML = `<tr>${template.headers.map(h => `<th class="p-2.5 border border-emerald-200 font-bold text-emerald-900">${h}</th>`).join('')}</tr>`;
+
+      const tbody = document.getElementById('samplePreviewBody');
+      tbody.innerHTML = template.rows.map(row => `
+        <tr class="hover:bg-emerald-50/50 transition">
+          ${row.map(cell => `<td class="p-2.5 border border-emerald-100">${cell}</td>`).join('')}
+        </tr>
+      `).join('');
+
+      const dlBtn = document.getElementById('downloadSampleBtn');
+      dlBtn.onclick = () => downloadSampleCsv(type);
+
+      document.getElementById('samplePreviewModal').classList.remove('hidden');
+    }
+
+    function closeSamplePreviewModal() {
+      document.getElementById('samplePreviewModal').classList.add('hidden');
+    }
+
+    // ฟังก์ชันดาวน์โหลดไฟล์ตัวอย่าง CSV
+    function downloadSampleCsv(type) {
+      const template = sampleTemplates[type];
+      if (!template) return;
+
+      let csvContent = "\uFEFF"; // UTF-8 BOM
+      csvContent += template.headers.join(",") + "\r\n";
+      template.rows.forEach(row => {
+        csvContent += row.map(v => `"${v}"`).join(",") + "\r\n";
+      });
+
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", template.filename);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      showToast(`ดาวน์โหลด ${template.filename} สำเร็จ`);
+    }
+
+    // 1. สลับสิทธิ์ผู้ใช้งาน
+    function switchRole(roleId) {
+      document.querySelectorAll('.role-content').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.role-btn').forEach(el => el.classList.remove('active'));
+      
+      document.getElementById(roleId).classList.remove('hidden');
+      document.getElementById('btn-' + roleId).classList.add('active');
+
+      if (roleId === 'teacherRole') {
+        loadRecords();
+      } else if (roleId === 'adminRole') {
+        if (!isAdminLoggedIn) {
+          document.getElementById('adminAuthSection').classList.remove('hidden');
+          document.getElementById('adminDashboard').classList.add('hidden');
+        }
+      }
+    }
+
+    // 2. สลับ Sub Tab ฝั่งครูผู้สอน
+    function switchTeacherSubTab(subId) {
+      document.querySelectorAll('.teacher-subcontent').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.subtab-btn').forEach(el => el.classList.remove('active'));
+
+      if (subId === 'subReq') {
+        document.getElementById('teacherSubReq').classList.remove('hidden');
+        document.getElementById('btn-subReq').classList.add('active');
+      } else {
+        document.getElementById('teacherSubStatus').classList.remove('hidden');
+        document.getElementById('btn-subStatus').classList.add('active');
+        loadRecords();
+      }
+    }
+
+    // 3. สลับ Admin Tab
+    function switchAdminTab(adminTabId) {
+      document.querySelectorAll('.admin-subcontent').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.admin-tab-btn').forEach(el => el.classList.remove('active'));
+
+      if (adminTabId === 'admPdf') {
+        document.getElementById('adminTabPdf').classList.remove('hidden');
+        document.getElementById('btn-admPdf').classList.add('active');
+      } else if (adminTabId === 'admApprove') {
+        document.getElementById('adminTabApprove').classList.remove('hidden');
+        document.getElementById('btn-admApprove').classList.add('active');
+        loadRecords();
+      } else if (adminTabId === 'admSettings') {
+        document.getElementById('adminTabSettings').classList.remove('hidden');
+        document.getElementById('btn-admSettings').classList.add('active');
+        renderDepartmentManager();
+      }
+    }
+
+    // 4. ปรับเปลี่ยนรายชื่อครูตามกลุ่มสาระการเรียนรู้ที่เลือก
+    function populateDepartments() {
+      const deptSelect = document.getElementById('department');
+      const newTeacherDeptSelect = document.getElementById('newTeacherDept');
+      
+      deptSelect.innerHTML = '<option value="">-- เลือกกลุ่มสาระการเรียนรู้ --</option>';
+      newTeacherDeptSelect.innerHTML = '<option value="">-- เลือกกลุ่มสาระ --</option>';
+
+      Object.keys(mockTeachers).forEach(dept => {
+        deptSelect.innerHTML += `<option value="${dept}">${dept}</option>`;
+        newTeacherDeptSelect.innerHTML += `<option value="${dept}">${dept}</option>`;
+      });
+    }
+
+    function onDepartmentChange() {
+      const dept = document.getElementById('department').value;
+      const teacherSelect = document.getElementById('teacherName');
+      teacherSelect.innerHTML = '';
+
+      if (dept && mockTeachers[dept]) {
+        teacherSelect.disabled = false;
+        teacherSelect.innerHTML = '<option value="">-- เลือกครูผู้สอน --</option>';
+        mockTeachers[dept].forEach(t => {
+          teacherSelect.innerHTML += `<option value="${t}">${t}</option>`;
+        });
+      } else {
+        teacherSelect.disabled = true;
+        teacherSelect.innerHTML = '<option value="">-- กรุณาเลือกกลุ่มสาระก่อน --</option>';
+      }
+
+      resetStudentFields();
+    }
+
+    function onTeacherSelectChange() {
+      const studentId = document.getElementById('studentId').value.trim();
+      if (studentId.length === 5) {
+        autoFetchStudentInfo();
+      }
+    }
+
+    // 5. ค้นหาและตรวจสอบความถูกต้องของครูผู้สอนกับข้อมูลนักเรียน
+    async function autoFetchStudentInfo() {
+      const dept = document.getElementById('department').value;
+      const teacher = document.getElementById('teacherName').value;
+      const studentIdInput = document.getElementById('studentId');
+      const studentId = studentIdInput.value.trim();
+
+      if (studentId.length < 5) {
+        if (studentId.length === 0) resetStudentFields();
+        return;
+      }
+
+      if (!dept || !teacher) {
+        showNoticeModal(
+          "กรุณาเลือกข้อมูลครูก่อน",
+          "โปรดเลือก \"กลุ่มสาระการเรียนรู้\" และ \"ครูผู้สอน\" ในขั้นตอนที่ 1 ให้เรียบร้อยก่อนพิมพ์รหัสนักเรียน",
+          "warning"
+        );
+        studentIdInput.value = ""; 
+        return;
+      }
+
+      document.getElementById('lookupSpinner').classList.remove('hidden');
+
+      if (mockStudents[studentId]) {
+        const info = mockStudents[studentId];
+
+        if (info.teacherName !== teacher) {
+          document.getElementById('lookupSpinner').classList.add('hidden');
+          showNoticeModal(
+            "ครูผู้สอนที่เลือกไม่ถูกต้อง!",
+            `รหัสนักเรียน "${studentId}" (${info.name}) ในรายวิชา ${info.subjectCode} - ${info.subjectName} เป็นของครูผู้สอน "${info.teacherName}" (${info.department})\n\nกรุณาเปลี่ยนกลุ่มสาระและครูผู้สอนให้ตรงกับวิชาของนักเรียน`,
+            "error"
+          );
+          resetStudentFields();
+          return;
+        }
+
+        document.getElementById('studentName').value = info.name;
+        document.getElementById('gradeLevel').value = info.gradeLevel;
+        document.getElementById('subjectCode').value = info.subjectCode;
+        document.getElementById('subjectName').value = info.subjectName;
+        document.getElementById('oldGrade').value = info.oldGrade;
+        document.getElementById('lookupSpinner').classList.add('hidden');
+        return;
+      } else {
+        showNoticeModal("ไม่พบข้อมูลนักเรียน", `ไม่พบประวัติผลการเรียนที่ต้องแก้ไขของรหัสนักเรียน "${studentId}" ในระบบ`, "error");
+        resetStudentFields();
+        document.getElementById('lookupSpinner').classList.add('hidden');
+      }
+    }
+
+    function resetStudentFields() {
+      document.getElementById('studentName').value = '';
+      document.getElementById('gradeLevel').value = '';
+      document.getElementById('subjectCode').value = '';
+      document.getElementById('subjectName').value = '';
+      document.getElementById('oldGrade').value = '';
+    }
+
+    function showNoticeModal(title, msg, type = "warning") {
+      const iconContainer = document.getElementById('noticeIconContainer');
+      const icon = document.getElementById('noticeIcon');
+      document.getElementById('noticeTitle').innerText = title;
+      document.getElementById('noticeMsg').innerText = msg;
+
+      if (type === "error") {
+        iconContainer.className = "w-16 h-16 bg-rose-100 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl shadow-inner";
+        icon.className = "fas fa-user-xmark";
+      } else {
+        iconContainer.className = "w-16 h-16 bg-amber-100 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl shadow-inner";
+        icon.className = "fas fa-exclamation-triangle";
+      }
+      document.getElementById('noticeModal').classList.remove('hidden');
+    }
+
+    function closeNoticeModal() {
+      document.getElementById('noticeModal').classList.add('hidden');
+    }
+
+    // 6. Drag and Drop Upload
+    function setupDragAndDrop(dropAreaId, fileInputId, fileNameTextId, customHandler) {
+      const dropArea = document.getElementById(dropAreaId);
+      const fileInput = document.getElementById(fileInputId);
+
+      if (!dropArea || !fileInput) return;
+
+      ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropArea.addEventListener(eventName, preventDefaults, false);
+      });
+
+      function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); }
+
+      ['dragenter', 'dragover'].forEach(eventName => {
+        dropArea.addEventListener(eventName, () => dropArea.classList.add('drop-zone--over'), false);
+      });
+
+      ['dragleave', 'drop'].forEach(eventName => {
+        dropArea.addEventListener(eventName, () => dropArea.classList.remove('drop-zone--over'), false);
+      });
+
+      dropArea.addEventListener('drop', (e) => {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        if (files.length > 0) {
+          fileInput.files = files;
+          if (customHandler) {
+            customHandler(fileInput);
+          } else {
+            handleFileSelect(fileInput, fileNameTextId);
+          }
+        }
+      }, false);
+    }
+
+    function handleFileSelect(input, labelId) {
+      const label = document.getElementById(labelId);
+      if (input.files && input.files[0]) {
+        const file = input.files[0];
+        let fileIcon = "📄";
+        if (file.type.includes("image")) fileIcon = "🖼️";
+        else if (file.type.includes("pdf")) fileIcon = "📕";
+        else if (file.type.includes("sheet") || file.type.includes("excel") || file.name.endsWith(".csv")) fileIcon = "📊";
+
+        label.innerText = `✓ ${fileIcon} ${file.name}`;
+      } else {
+        label.innerText = 'ยังไม่ได้เลือกไฟล์';
+      }
+    }
+
+    // 7. จัดการอัปโหลดโลโก้โรงเรียน
+    function handleLogoSelect(input) {
+      if (input.files && input.files[0]) {
+        const file = input.files[0];
+        document.getElementById('logoFileName').innerText = `✓ เลือกรูปโลโก้แล้ว: ${file.name}`;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          tempLogoData = e.target.result;
+          document.getElementById('logoPreview').src = tempLogoData;
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+
+    function applyLogoUrl() {
+      const url = document.getElementById('logoUrlInput').value.trim();
+      if (!url) return showNoticeModal("คำเตือน", "กรุณากรอก URL รูปภาพโลโก้ก่อนกดปุ่ม", "warning");
+      tempLogoData = url;
+      document.getElementById('logoPreview').src = tempLogoData;
+      showToast("ดึงรูปโลโก้จาก URL สำเร็จ");
+    }
+
+    function saveLogoSetting() {
+      if (!tempLogoData) {
+        return showNoticeModal("คำเตือน", "กรุณาเลือกไฟล์รูปภาพโลโก้ หรือใส่ URL ก่อนบันทึก", "warning");
+      }
+      document.getElementById('headerSchoolLogo').src = tempLogoData;
+      showToast("บันทึกและอัปเดตตราโลโก้โรงเรียนเรียบร้อยแล้ว!");
+    }
+
+    // 8. จัดการประกาศจากงานวัดผล (ตั้งค่าฝั่งแอดมิน)
+    function toggleAnnouncementVisibility() {
+      const toggle = document.getElementById('announcementToggle');
+      const label = document.getElementById('announcementToggleLabel');
+      const banner = document.getElementById('announcementBanner');
+
+      if (toggle.checked) {
+        label.innerText = "เปิดแสดง";
+        label.className = "ml-2 text-xs font-bold text-amber-600";
+        banner.classList.remove('hidden');
+        showToast("เปิดแสดงแถบประกาศแล้ว");
+      } else {
+        label.innerText = "ปิดแสดง";
+        label.className = "ml-2 text-xs font-bold text-slate-400";
+        banner.classList.add('hidden');
+        showToast("ซ่อนแถบประกาศแล้ว", "warning");
+      }
+    }
+
+    function saveAnnouncementSetting() {
+      const text = document.getElementById('cfgAnnouncementText').value.trim();
+      if (!text) return showNoticeModal("คำเตือน", "กรุณากรอกข้อความประกาศ", "warning");
+      
+      document.getElementById('announcementText').innerText = text;
+      showToast("บันทึกข้อความประกาศเรียบร้อยแล้ว!");
+    }
+
+    // 9. ส่งคำร้องขอแก้ไขเกรดฝั่งครู
+    function handleTeacherSubmit(e) {
+      e.preventDefault();
+
+      if (!isSystemOpen) {
+        showNoticeModal("ระบบปิดรับบริการ", "ขณะนี้ระบบปิดรับยื่นคำร้องขอแก้ไขเกรดชั่วคราว", "warning");
+        return;
+      }
+
+      const dept = document.getElementById('department').value;
+      const teacher = document.getElementById('teacherName').value;
+
+      if (!dept || !teacher) {
+        showNoticeModal("ข้อมูลไม่ครบถ้วน", "กรุณาเลือกกลุ่มสาระและครูผู้สอนให้เรียบร้อยก่อนส่งคำร้อง", "warning");
+        return;
+      }
+
+      const fileInput = document.getElementById('proofImage');
+      const file = fileInput.files[0];
+
+      if (!file) {
+        showNoticeModal("ยังไม่ได้แนบรูปหลักฐาน", "กรุณาแนบรูปถ่ายหลักฐานหรือใบคะแนน", "warning");
+        return;
+      }
+
+      const btn = document.getElementById('btnSubmitReq');
+      btn.disabled = true;
+      btn.innerHTML = `<i class="fas fa-spinner fa-spin mr-1"></i> กำลังอ่านไฟล์รูปภาพ...`;
+
+      // อ่านไฟล์รูปภาพเป็น Base64 Data URL
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        const imageBase64 = event.target.result;
+
+        const newRecord = {
+          id: Date.now(),
+          timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
+          teacherName: teacher,
+          department: dept,
+          studentId: document.getElementById('studentId').value,
+          studentName: document.getElementById('studentName').value,
+          gradeLevel: document.getElementById('gradeLevel').value,
+          subjectCode: document.getElementById('subjectCode').value,
+          subjectName: document.getElementById('subjectName').value,
+          oldGrade: document.getElementById('oldGrade').value,
+          newGradeText: document.getElementById('newGrade').value,
+          fileUrl: imageBase64,
+          status: "รอตรวจสอบ",
+          remark: "-"
+        };
+
+        mockRecords.unshift(newRecord);
+
+        // หากมีการตั้งค่า Google Apps Script Web App URL ให้ส่งซิงก์ข้อมูลทันที
+        if (webAppUrl) {
+          fetch(webAppUrl, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              ...newRecord,
+              lineToken: lineNotifyToken
+            })
+          }).catch(err => console.log('Apps Script Sync Notice:', err));
+        }
+
+        showToast("ยื่นคำร้องขอแก้ไขเกรดเรียบร้อยแล้ว");
+        document.getElementById('teacherRequestForm').reset();
+        document.getElementById('proofFileName').innerText = "ยังไม่ได้เลือกไฟล์";
+        btn.disabled = false;
+        btn.innerHTML = `<i class="fas fa-paper-plane"></i> ส่งคำร้องขอแก้ไขเกรด`;
+      };
+
+      reader.readAsDataURL(file);
+    }
+
+    // 10. โหลดข้อมูลคำร้อง
+    function loadRecords() {
+      const tbody = document.getElementById('statusTableBody');
+      const adminTbody = document.getElementById('adminTableBody');
+      
+      if (mockRecords && mockRecords.length > 0) {
+        tbody.innerHTML = mockRecords.map(row => `
+          <tr class="border-b border-slate-100 hover:bg-emerald-50/40 transition">
+            <td class="p-2.5">${row.timestamp}</td>
+            <td class="p-2.5 font-medium">${row.teacherName}<br><span class="text-[10px] text-slate-400 font-normal">(${row.department})</span></td>
+            <td class="p-2.5">${row.studentName}<br><span class="text-[10px] text-slate-400 font-normal">รหัส: ${row.studentId} (${row.gradeLevel})</span></td>
+            <td class="p-2.5">${row.subjectCode} - ${row.subjectName}</td>
+            <td class="p-2.5 font-semibold text-center">${row.oldGrade} ➔ <span class="text-emerald-700 font-bold">${row.newGradeText || row.newGrade}</span></td>
+            <td class="p-2.5 text-center">
+              <button onclick="viewProofImage('${row.fileUrl}')" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-lg font-medium text-[11px] inline-flex items-center gap-1 cursor-pointer transition">
+                <i class="fas fa-image"></i> ดูรูป
+              </button>
+            </td>
+            <td class="p-2.5">${getStatusBadge(row.status)}</td>
+            <td class="p-2.5">${row.remark || '-'}</td>
+          </tr>
+        `).join('');
+
+        if (adminTbody) {
+          adminTbody.innerHTML = mockRecords.map(row => `
+            <tr class="border-b border-slate-100 hover:bg-emerald-50/40 transition">
+              <td class="p-2.5 font-mono">${row.id}</td>
+              <td class="p-2.5 font-medium">${row.teacherName}</td>
+              <td class="p-2.5">${row.studentName} (${row.studentId})</td>
+              <td class="p-2.5">${row.subjectCode} - ${row.subjectName}</td>
+              <td class="p-2.5 font-bold text-center">${row.oldGrade} ➔ ${row.newGradeText || row.newGrade}</td>
+              <td class="p-2.5 text-center">
+                <button onclick="viewProofImage('${row.fileUrl}')" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-lg font-medium text-[11px] inline-flex items-center gap-1 cursor-pointer transition">
+                  <i class="fas fa-image"></i> ดูหลักฐาน
+                </button>
+              </td>
+              <td class="p-2.5">${getStatusBadge(row.status)}</td>
+              <td class="p-2.5 text-center space-x-1">
+                <button onclick="updateStatus(${row.id}, 'อนุมัติ')" class="bg-emerald-600 text-white px-2.5 py-1 rounded-md text-[11px] hover:bg-emerald-700 transition cursor-pointer">อนุมัติ</button>
+                <button onclick="updateStatus(${row.id}, 'ไม่อนุมัติ')" class="bg-rose-600 text-white px-2.5 py-1 rounded-md text-[11px] hover:bg-rose-700 transition cursor-pointer">ปฏิเสธ</button>
+              </td>
+            </tr>
+          `).join('');
+        }
+      } else {
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center p-6 text-slate-400">ยังไม่มีรายการคำร้องในระบบ</td></tr>`;
+      }
+    }
+
+    function getStatusBadge(status) {
+      if (status === 'อนุมัติ') return `<span class="bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-full text-[11px] font-semibold border border-emerald-200"><i class="fas fa-check-circle mr-1"></i>อนุมัติ</span>`;
+      if (status === 'ไม่อนุมัติ') return `<span class="bg-rose-100 text-rose-700 px-2.5 py-1 rounded-full text-[11px] font-semibold border border-rose-200"><i class="fas fa-times-circle mr-1"></i>ไม่อนุมัติ</span>`;
+      return `<span class="bg-amber-100 text-amber-800 px-2.5 py-1 rounded-full text-[11px] font-semibold border border-amber-200"><i class="fas fa-spinner fa-spin mr-1"></i>รอตรวจสอบ</span>`;
+    }
+
+    // 11. ฝั่งแอดมิน: ยืนยันรหัส PIN & ออกจากระบบ (Logout)
+    function verifyAdminPin() {
+      const pin = document.getElementById('adminPin').value.trim();
+      if (pin === currentAdminPin) {
+        isAdminLoggedIn = true;
+        document.getElementById('adminAuthSection').classList.add('hidden');
+        document.getElementById('adminDashboard').classList.remove('hidden');
+        document.getElementById('adminPin').value = '';
+        showToast("เข้าสู่ระบบผู้ดูแลระบบสำเร็จ");
+        loadRecords();
+        renderDepartmentManager();
+      } else {
+        showNoticeModal("เข้าสู่ระบบไม่สำเร็จ", "รหัส PIN ไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง", "error");
+      }
+    }
+
+    function promptLogout() {
+      openConfirmModal(
+        "ยืนยันออกจากระบบ",
+        "คุณต้องการออกจากระบบผู้ดูแลระบบ (Admin) ใช่หรือไม่?",
+        executeAdminLogout,
+        "fa-right-from-bracket",
+        true
+      );
+    }
+
+    function executeAdminLogout() {
+      isAdminLoggedIn = false;
+      document.getElementById('adminDashboard').classList.add('hidden');
+      document.getElementById('adminAuthSection').classList.remove('hidden');
+      document.getElementById('adminPin').value = '';
+      showToast("ออกจากระบบแอดมินเรียบร้อยแล้ว", "warning");
+    }
+
+    // อ่านข้อความในไฟล์ CSV/Excel/Text เพื่อสกัดรายชื่อครูและกลุ่มสาระเข้าสู่ระบบ
+    function parseTeacherFileContent(fileText, fileName) {
+      const lines = fileText.split(/\r\n|\n/);
+      let addedCount = 0;
+      let detectedDeptIndex = -1;
+      let detectedTeacherIndex = -1;
+
+      if (lines.length > 0) {
+        const firstLineCells = lines[0].split(',').map(c => c.replace(/^"|"$/g, '').trim());
+        firstLineCells.forEach((col, idx) => {
+          if (col.includes("กลุ่มสาระ") || col.includes("หมวด") || col.includes("แผนก")) detectedDeptIndex = idx;
+          if (col.includes("ชื่อ") || col.includes("ครู") || col.includes("ผู้สอน")) detectedTeacherIndex = idx;
+        });
+
+        if (detectedDeptIndex === -1) detectedDeptIndex = 1;
+        if (detectedTeacherIndex === -1) detectedTeacherIndex = 2;
+
+        for (let i = 1; i < lines.length; i++) {
+          if (!lines[i].trim()) continue;
+          const cells = lines[i].split(',').map(c => c.replace(/^"|"$/g, '').trim());
+
+          if (cells[detectedDeptIndex] && cells[detectedTeacherIndex]) {
+            const dept = cells[detectedDeptIndex];
+            const teacherName = cells[detectedTeacherIndex];
+
+            if (dept && teacherName && teacherName !== "ชื่อ-นามสกุลครูผู้สอน") {
+              if (!mockTeachers[dept]) {
+                mockTeachers[dept] = [];
+              }
+              if (!mockTeachers[dept].includes(teacherName)) {
+                mockTeachers[dept].push(teacherName);
+                addedCount++;
+              }
+            }
+          }
+        }
+      }
+
+      populateDepartments();
+      renderDepartmentManager();
+
+      if (addedCount > 0) {
+        showToast(`สกัดดึงข้อมูลครูใหม่สำเร็จ ${addedCount} รายการ!`);
+      }
+    }
+
+    function uploadPdfData(type, inputId) {
+      const fileInput = document.getElementById(inputId);
+      const file = fileInput.files[0];
+      if (!file) return showNoticeModal("คำเตือน", "กรุณาเลือกไฟล์ที่ต้องการอัปโหลดก่อน", "warning");
+
+      const log = document.getElementById('adminLog');
+      log.innerText = `> กำลังอัปโหลดไฟล์ (${file.name})...`;
+
+      setTimeout(() => {
+        if (type === "teacher" && (file.name.endsWith(".csv") || file.type.includes("text") || file.name.endsWith(".txt"))) {
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            parseTeacherFileContent(e.target.result, file.name);
+          };
+          reader.readAsText(file, "UTF-8");
+        }
+        log.innerText = `> [สำเร็จ] อัปโหลดไฟล์ ${file.name} เรียบร้อยแล้ว`;
+        showToast(`อัปโหลดไฟล์ ${file.name} สำเร็จ`);
+        fileInput.value = '';
+      }, 500);
+    }
+
+    function updateStatus(id, newStatus) {
+      openConfirmModal(
+        `ยืนยันการ${newStatus}คำร้อง`,
+        `คุณต้องการปรับสถานะคำร้องรายการนี้เป็น "${newStatus}" ใช่หรือไม่?`,
+        () => {
+          const target = mockRecords.find(r => r.id === id);
+          if (target) {
+            target.status = newStatus;
+          }
+          showToast(`อัปเดตสถานะเป็น "${newStatus}" เรียบร้อยแล้ว`);
+          loadRecords();
+        },
+        newStatus === "อนุมัติ" ? "fa-circle-check" : "fa-circle-xmark",
+        newStatus !== "อนุมัติ"
+      );
+    }
+
+    // 12. ฟังก์ชันการตั้งค่าระบบฝั่งแอดมิน (SETTINGS)
+    function toggleSystemStatusText() {
+      const toggle = document.getElementById('systemOpenToggle');
+      const label = document.getElementById('systemOpenStatusLabel');
+      isSystemOpen = toggle.checked;
+
+      if (isSystemOpen) {
+        label.innerText = "เปิดระบบ";
+        label.className = "ml-2 text-xs font-bold text-emerald-600";
+        document.getElementById('systemClosedBanner').classList.add('hidden');
+        document.getElementById('teacherSubReq').classList.remove('opacity-50', 'pointer-events-none');
+        showToast("เปิดรับคำร้องเรียบร้อยแล้ว");
+      } else {
+        label.innerText = "ปิดระบบ";
+        label.className = "ml-2 text-xs font-bold text-rose-600";
+        document.getElementById('systemClosedBanner').classList.remove('hidden');
+        document.getElementById('teacherSubReq').classList.add('opacity-50', 'pointer-events-none');
+        showToast("ปิดรับคำร้องชั่วคราวเรียบร้อยแล้ว", "warning");
+      }
+    }
+
+    function saveGeneralSettings() {
+      const schoolName = document.getElementById('cfgSchoolName').value;
+      const semester = document.getElementById('cfgSemester').value;
+      const year = document.getElementById('cfgAcademicYear').value;
+
+      document.getElementById('schoolHeaderTag').innerText = `${schoolName} • ภาคเรียนที่ ${semester}/${year}`;
+      showToast("บันทึกการตั้งค่าทั่วไปเรียบร้อยแล้ว");
+    }
+
+    function updateAdminPin() {
+      const newPin = document.getElementById('cfgAdminPin').value.trim();
+      if (newPin.length < 4) return showNoticeModal("คำเตือน", "รหัส PIN ต้องมีอย่างน้อย 4 หลัก", "warning");
+      
+      currentAdminPin = newPin;
+      document.getElementById('cfgAdminPin').value = '';
+      showToast(`เปลี่ยนรหัส PIN แอดมินใหม่เรียบร้อยแล้ว (PIN ใหม่: ${newPin})`);
+    }
+
+    // 13. จัดการรายชื่อครูและกลุ่มสาระ
+    function renderDepartmentManager() {
+      const container = document.getElementById('departmentTeacherList');
+      if (!container) return;
+      container.innerHTML = '';
+
+      Object.keys(mockTeachers).forEach(dept => {
+        const teachers = mockTeachers[dept];
+        const teacherBadges = teachers.map(t => `
+          <span class="inline-flex items-center bg-white border border-slate-200 text-slate-700 px-2.5 py-1 rounded-lg text-[11px] shadow-sm">
+            <i class="fas fa-user-tie mr-1.5 text-slate-400 text-[10px]"></i>
+            ${t}
+            <button onclick="promptRemoveTeacher('${dept.replace(/'/g, "\\'")}', '${t.replace(/'/g, "\\'")}')" class="ml-2 text-slate-300 hover:text-rose-600 transition cursor-pointer">
+              <i class="fas fa-xmark"></i>
+            </button>
+          </span>
+        `).join('');
+
+        container.innerHTML += `
+          <div class="border border-slate-200 rounded-xl p-3.5 bg-slate-50">
+            <div class="flex justify-between items-center mb-2.5">
+              <h4 class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                <i class="fas fa-folder text-amber-500 text-sm"></i>
+                <span>กลุ่มสาระ${dept}</span>
+                <span class="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full text-[10px] font-semibold">${teachers.length} คน</span>
+              </h4>
+            </div>
+            <div class="flex flex-wrap gap-1.5">
+              ${teacherBadges}
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    function addNewTeacher() {
+      const dept = document.getElementById('newTeacherDept').value;
+      const name = document.getElementById('newTeacherName').value.trim();
+
+      if (!dept || !name) return showNoticeModal("คำเตือน", "กรุณาเลือกกลุ่มสาระและกรอกชื่อครูผู้สอนให้ครบถ้วน", "warning");
+
+      if (!mockTeachers[dept]) mockTeachers[dept] = [];
+      
+      if (mockTeachers[dept].includes(name)) {
+        return showNoticeModal("ข้อมูลซ้ำ", `ชื่อครู "${name}" มีอยู่ในกลุ่มสาระ ${dept} แล้ว`, "warning");
+      }
+
+      mockTeachers[dept].push(name);
+      document.getElementById('newTeacherName').value = '';
+      populateDepartments();
+      renderDepartmentManager();
+      showToast(`เพิ่ม ${name} เข้ากลุ่มสาระ ${dept} เรียบร้อยแล้ว`);
+    }
+
+    function promptRemoveTeacher(dept, teacherName) {
+      openConfirmModal(
+        "ยืนยันลบรายชื่อครู",
+        `คุณต้องการลบ "${teacherName}" ออกจากกลุ่มสาระ ${dept} ใช่หรือไม่?`,
+        () => {
+          mockTeachers[dept] = mockTeachers[dept].filter(t => t !== teacherName);
+          populateDepartments();
+          renderDepartmentManager();
+          showToast(`ลบ ${teacherName} เรียบร้อยแล้ว`, "warning");
+        },
+        "fa-user-minus",
+        true
+      );
+    }
+
+    // เรียกใช้ระบบเริ่มต้นเมื่อเปิดหน้าเว็บ
+    window.onload = function() {
+      populateDepartments();
+      loadRecords();
+      setupDragAndDrop('dropZoneProof', 'proofImage', 'proofFileName');
+      setupDragAndDrop('dropStudent', 'pdfStudent', 'txtPdfStudent');
+      setupDragAndDrop('dropTeacher', 'pdfTeacher', 'txtPdfTeacher');
+      setupDragAndDrop('dropGrade', 'pdfGrade', 'txtPdfGrade');
+      setupDragAndDrop('dropZoneLogo', 'logoFileInput', 'logoFileName', handleLogoSelect);
+    };
+  </script>
+</body>
+</html>
